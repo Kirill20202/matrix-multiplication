@@ -102,14 +102,31 @@ function multiply(a, b) {
   return result;
 }
 
+/**
+ * Update the output display with the given text
+ * @param {string} text - Text to display in the output area
+ */
 function setOutput(text) {
   document.getElementById('output').textContent = text;
 }
 
-function pretty(obj) {
-  return JSON.stringify(obj, (_, v) => (typeof v === 'number' && Number.isFinite(v) ? Number(v.toPrecision(12)) : v), 2);
+/**
+ * Format a matrix as a clean array with each row on a new line
+ * @param {Matrix} matrix - Matrix to format
+ * @returns {string} Formatted matrix string
+ */
+function pretty(matrix) {
+  const rows = matrix.map(row => 
+    '[' + row.map(x => formatNumber(x)).join(', ') + ']'
+  );
+  return '[' + rows.join(',\n') + ']';
 }
 
+/**
+ * Format a number with controlled precision to avoid floating point artifacts
+ * @param {number} n - Number to format
+ * @returns {string} Formatted number string
+ */
 function formatNumber(n) {
   return String(Number(n.toPrecision(12)));
 }
@@ -122,19 +139,29 @@ function formatWhitespaceMatrix(m) {
   return m.map((row) => row.map((x) => formatNumber(x)).join(' ')).join('\n');
 }
 
+/**
+ * Fill the input areas with demo matrices in whitespace format
+ */
 function fillDemo() {
   // Fill with a whitespace-formatted example
-  document.getElementById('leftMatrix').value = '1 2 3\n4 5 6';
-  document.getElementById('rightMatrix').value = '7 8\n9 10\n11 12';
+  document.getElementById('leftMatrix').value = '1 2 3\n4 5 6\n7 8 9 ';
+  document.getElementById('rightMatrix').value = '10 11 12\n13 14 15\n16 17 18';
   setOutput('');
 }
 
+/**
+ * Clear all input areas and output
+ */
 function clearAll() {
   document.getElementById('leftMatrix').value = '';
   document.getElementById('rightMatrix').value = '';
   setOutput('');
 }
 
+/**
+ * Handle matrix multiplication button click
+ * Parses input matrices and displays the result
+ */
 function onMultiply() {
   try {
     const aRaw = document.getElementById('leftMatrix').value.trim();
@@ -151,8 +178,83 @@ function onMultiply() {
   }
 }
 
+/** Ensure matrices have identical shape for element-wise operations */
+function assertSameShape(a, b, opName) {
+  if (a.length !== b.length || a[0].length !== b[0].length) {
+    throw new Error(`${opName} requires same shape: A is ${a.length}x${a[0].length}, B is ${b.length}x${b[0].length}`);
+  }
+}
+
+/** @param {Matrix} a @param {Matrix} b */
+function add(a, b) {
+  assertSameShape(a, b, 'Addition');
+  const rows = a.length, cols = a[0].length;
+  const out = Array.from({ length: rows }, () => Array(cols).fill(0));
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      out[i][j] = a[i][j] + b[i][j];
+    }
+  }
+  return out;
+}
+
+/** @param {Matrix} a @param {Matrix} b */
+function subtract(a, b) {
+  assertSameShape(a, b, 'Subtraction');
+  const rows = a.length, cols = a[0].length;
+  const out = Array.from({ length: rows }, () => Array(cols).fill(0));
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      out[i][j] = a[i][j] - b[i][j];
+    }
+  }
+  return out;
+}
+
+/**
+ * Handle matrix addition button click
+ * Parses input matrices and displays the element-wise sum
+ */
+function onAdd() {
+  try {
+    const aRaw = document.getElementById('leftMatrix').value.trim();
+    const bRaw = document.getElementById('rightMatrix').value.trim();
+    if (!aRaw || !bRaw) throw new Error('Please provide both matrices.');
+    const a = parseFlexibleMatrix(aRaw, 'left');
+    const b = parseFlexibleMatrix(bRaw, 'right');
+    const c = add(a, b);
+    const grid = formatWhitespaceMatrix(c);
+    const json = pretty(c);
+    setOutput(`${grid}\n\n${json}`);
+  } catch (err) {
+    setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
+ * Handle matrix subtraction button click
+ * Parses input matrices and displays the element-wise difference
+ */
+function onSubtract() {
+  try {
+    const aRaw = document.getElementById('leftMatrix').value.trim();
+    const bRaw = document.getElementById('rightMatrix').value.trim();
+    if (!aRaw || !bRaw) throw new Error('Please provide both matrices.');
+    const a = parseFlexibleMatrix(aRaw, 'left');
+    const b = parseFlexibleMatrix(bRaw, 'right');
+    const c = subtract(a, b);
+    const grid = formatWhitespaceMatrix(c);
+    const json = pretty(c);
+    setOutput(`${grid}\n\n${json}`);
+  } catch (err) {
+    setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fillDemo').addEventListener('click', fillDemo);
   document.getElementById('clearAll').addEventListener('click', clearAll);
   document.getElementById('multiply').addEventListener('click', onMultiply);
+  document.getElementById('add').addEventListener('click', onAdd);
+  document.getElementById('subtract').addEventListener('click', onSubtract);
 });
