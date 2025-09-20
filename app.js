@@ -212,6 +212,106 @@ function subtract(a, b) {
 }
 
 /**
+ * Calculate the determinant of a square matrix using LU decomposition
+ * @param {Matrix} matrix - Square matrix
+ * @returns {number} Determinant value
+ */
+function determinant(matrix) {
+  if (matrix.length !== matrix[0].length) {
+    throw new Error('Determinant requires a square matrix');
+  }
+  const n = matrix.length;
+  if (n === 1) return matrix[0][0];
+  if (n === 2) return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0];
+  
+  // LU decomposition for larger matrices
+  const lu = [...matrix.map(row => [...row])];
+  let det = 1;
+  let sign = 1;
+  
+  for (let i = 0; i < n; i++) {
+    // Find pivot
+    let maxRow = i;
+    for (let k = i + 1; k < n; k++) {
+      if (Math.abs(lu[k][i]) > Math.abs(lu[maxRow][i])) {
+        maxRow = k;
+      }
+    }
+    
+    // Swap rows if needed
+    if (maxRow !== i) {
+      [lu[i], lu[maxRow]] = [lu[maxRow], lu[i]];
+      sign *= -1;
+    }
+    
+    // Check for singular matrix
+    if (Math.abs(lu[i][i]) < 1e-10) return 0;
+    
+    // Gaussian elimination
+    for (let k = i + 1; k < n; k++) {
+      const factor = lu[k][i] / lu[i][i];
+      for (let j = i; j < n; j++) {
+        lu[k][j] -= factor * lu[i][j];
+      }
+    }
+  }
+  
+  // Calculate determinant from diagonal
+  for (let i = 0; i < n; i++) {
+    det *= lu[i][i];
+  }
+  
+  return sign * det;
+}
+
+/**
+ * Calculate the rank of a matrix using Gaussian elimination
+ * @param {Matrix} matrix - Input matrix
+ * @returns {number} Matrix rank
+ */
+function matrixRank(matrix) {
+  const rows = matrix.length;
+  const cols = matrix[0].length;
+  const rank = Math.min(rows, cols);
+  
+  // Create a copy for row operations
+  const mat = matrix.map(row => [...row]);
+  
+  let rankCount = 0;
+  
+  for (let col = 0; col < cols && rankCount < rows; col++) {
+    // Find pivot
+    let pivotRow = -1;
+    for (let row = rankCount; row < rows; row++) {
+      if (Math.abs(mat[row][col]) > 1e-10) {
+        pivotRow = row;
+        break;
+      }
+    }
+    
+    if (pivotRow === -1) continue; // No pivot in this column
+    
+    // Swap rows
+    if (pivotRow !== rankCount) {
+      [mat[rankCount], mat[pivotRow]] = [mat[pivotRow], mat[rankCount]];
+    }
+    
+    // Eliminate column
+    const pivot = mat[rankCount][col];
+    for (let row = rankCount + 1; row < rows; row++) {
+      const factor = mat[row][col] / pivot;
+      for (let c = col; c < cols; c++) {
+        mat[row][c] -= factor * mat[rankCount][c];
+      }
+    }
+    
+    rankCount++;
+  }
+  
+  return rankCount;
+}
+
+/**
  * Handle matrix addition button click
  * Parses input matrices and displays the element-wise sum
  */
@@ -251,10 +351,44 @@ function onSubtract() {
   }
 }
 
+/**
+ * Handle determinant calculation button click
+ * Calculates determinant of the left matrix
+ */
+function onDeterminant() {
+  try {
+    const aRaw = document.getElementById('leftMatrix').value.trim();
+    if (!aRaw) throw new Error('Please provide a matrix.');
+    const a = parseFlexibleMatrix(aRaw, 'left');
+    const det = determinant(a);
+    setOutput(`Determinant = ${formatNumber(det)}`);
+  } catch (err) {
+    setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
+/**
+ * Handle matrix rank calculation button click
+ * Calculates rank of the left matrix
+ */
+function onRank() {
+  try {
+    const aRaw = document.getElementById('leftMatrix').value.trim();
+    if (!aRaw) throw new Error('Please provide a matrix.');
+    const a = parseFlexibleMatrix(aRaw, 'left');
+    const rank = matrixRank(a);
+    setOutput(`Rank = ${rank}`);
+  } catch (err) {
+    setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('fillDemo').addEventListener('click', fillDemo);
   document.getElementById('clearAll').addEventListener('click', clearAll);
   document.getElementById('multiply').addEventListener('click', onMultiply);
   document.getElementById('add').addEventListener('click', onAdd);
   document.getElementById('subtract').addEventListener('click', onSubtract);
+  document.getElementById('determinant').addEventListener('click', onDeterminant);
+  document.getElementById('rank').addEventListener('click', onRank);
 });
