@@ -168,14 +168,50 @@ function onMultiply() {
     const bRaw = document.getElementById('rightMatrix').value.trim();
     if (!aRaw || !bRaw) throw new Error('Please provide both matrices.');
     const a = parseFlexibleMatrix(aRaw, 'left');
-    const b = parseFlexibleMatrix(bRaw, 'right');
-    const c = multiply(a, b);
+    // If right operand is a single scalar number, do scalar multiplication A * s
+    const maybeScalar = parseScalarIfSingleToken(bRaw);
+    const c = (maybeScalar !== null)
+      ? scalarMultiply(a, maybeScalar)
+      : multiply(a, parseFlexibleMatrix(bRaw, 'right'));
     const grid = formatWhitespaceMatrix(c);
     const json = pretty(c);
     setOutput(`${grid}\n\n${json}`);
   } catch (err) {
     setOutput(`Error: ${err instanceof Error ? err.message : String(err)}`);
   }
+}
+
+/**
+ * If the provided text is a single numeric token (e.g. "2", "-3.5", "1e-3"),
+ * return its Number value; otherwise return null.
+ * @param {string} text
+ * @returns {number|null}
+ */
+function parseScalarIfSingleToken(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  // Must be a single line/token containing a valid JS number representation
+  const singleToken = /^[-+]?((\d+\.?\d*)|(\.\d+))([eE][-+]?\d+)?$/;
+  if (!singleToken.test(trimmed)) return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Multiply every element of matrix by a scalar value
+ * @param {Matrix} m
+ * @param {number} s
+ * @returns {Matrix}
+ */
+function scalarMultiply(m, s) {
+  const rows = m.length, cols = m[0].length;
+  const out = Array.from({ length: rows }, () => Array(cols).fill(0));
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      out[i][j] = m[i][j] * s;
+    }
+  }
+  return out;
 }
 
 /** Ensure matrices have identical shape for element-wise operations */
