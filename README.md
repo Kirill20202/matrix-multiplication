@@ -42,6 +42,8 @@ python main.py "$(cat left.json)" "$(cat right.json)"
 3. Choose operation: Multiply, Add, or Subtract
 4. View results in both grid and JSON formats
 
+![alt text](image.png)
+
 ## File Structure
 
 ```
